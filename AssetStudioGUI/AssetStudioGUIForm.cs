@@ -97,7 +97,7 @@ namespace AssetStudioGUI
         {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             InitializeComponent();
-            Text = $"AssetStudioGUI v{Application.ProductVersion}";
+            Text = $"AssetStudioGUI v{Application.ProductVersion} - by pilot";
             delayTimer = new System.Timers.Timer(800);
             delayTimer.Elapsed += new ElapsedEventHandler(delayTimer_Elapsed);
             displayAll.Checked = Properties.Settings.Default.displayAll;
@@ -211,11 +211,11 @@ namespace AssetStudioGUI
 
             if (!string.IsNullOrEmpty(productName))
             {
-                Text = $"AssetStudioGUI v{Application.ProductVersion} - {productName} - {assetsManager.assetsFileList[0].unityVersion} - {assetsManager.assetsFileList[0].m_TargetPlatform}";
+                Text = $"AssetStudioGUI v{Application.ProductVersion} - {productName} - {assetsManager.assetsFileList[0].unityVersion} - {assetsManager.assetsFileList[0].m_TargetPlatform} - by pilot";
             }
             else
             {
-                Text = $"AssetStudioGUI v{Application.ProductVersion} - no productName - {assetsManager.assetsFileList[0].unityVersion} - {assetsManager.assetsFileList[0].m_TargetPlatform}";
+                Text = $"AssetStudioGUI v{Application.ProductVersion} - no productName - {assetsManager.assetsFileList[0].unityVersion} - {assetsManager.assetsFileList[0].m_TargetPlatform} - by pilot";
             }
 
             assetListView.VirtualListSize = visibleAssets.Count;
@@ -1217,7 +1217,7 @@ namespace AssetStudioGUI
 
         private void ResetForm()
         {
-            Text = $"AssetStudioGUI v{Application.ProductVersion}";
+            Text = $"AssetStudioGUI v{Application.ProductVersion} - by pilot";
             assetsManager.Clear();
             assemblyLoader.Clear();
             exportableAssets.Clear();
