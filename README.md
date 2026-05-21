@@ -3,6 +3,8 @@
 
 **None of the repo, the tool, nor the repo owner is affiliated with, or sponsored or authorized by, Unity Technologies or its affiliates.**
 
+[中文文档 (Chinese README)](README_zh.md)
+
 AssetStudio is a tool for exploring, extracting and exporting assets and assetbundles.
 
 ## Features
@@ -64,6 +66,24 @@ AssetStudioCLI "C:\GameData" "C:\Output" -t Texture2D,AudioClip
 # Export raw asset data
 AssetStudioCLI "C:\GameData" "C:\Output" -m raw
 ```
+
+### Shader Export Improvements
+* **Pretty-printed shader output** with proper indentation (4-space indent per nesting level)
+  * All serialized shader structures now output with hierarchical indentation
+  * `StringBuilder.Append` extension method for indent-aware string building
+* **PlayerSubProgram export** for Unity 2021.3.10+/2022.1.13+ shaders
+  * Exports `SerializedPlayerSubProgram` data alongside regular SubPrograms
+  * `FlattenPlayerSubPrograms()` flattens 2D PlayerSubProgram arrays for export
+  * Generic `ConvertSubPrograms<T>()` handles both SubProgram and PlayerSubProgram types
+* **Lazy shader subprogram generation** via `ShaderSubProgramWrap`
+  * Defers `ShaderSubProgram` parsing until export time, reducing upfront memory usage
+* **`SerializedPropertyType.Int` fix** — integer shader properties now render correctly (rounded to int)
+
+### GUI Command-Line Arguments
+* Pass file/folder paths as command-line arguments to auto-load on startup
+  * `AssetStudioGUI.exe "C:\GameData\assets"` — loads folder automatically
+  * `AssetStudioGUI.exe file1.bundle file2.bundle` — loads multiple files
+  * Invalid paths are silently skipped
 
 ### ACL Animation Decompression (Infrastructure)
 * Added P/Invoke wrapper for `acl.dll` native library

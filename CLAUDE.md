@@ -47,7 +47,7 @@ Format conversion and export logic. Depends on core + PInvoke + both wrappers.
 
 - **Texture2DConverter** — decodes ~30 GPU texture formats by delegating to `Texture2DDecoderNative` via `TextureDecoder` wrapper.
 - **ModelConverter** — collects mesh, skeleton, material, and animation data from GameObjects/Animators into an `IImported` intermediate representation.
-- **ShaderConverter** — decompresses and reconstructs shader source from compiled bytecode blobs.
+- **ShaderConverter** — decompresses and reconstructs shader source from compiled bytecode blobs. Outputs pretty-printed shader text with proper indentation. Uses `ShaderSubProgramWrap` for lazy subprogram generation and generic `ConvertSubPrograms<T>` for both `SerializedSubProgram` and `SerializedPlayerSubProgram` export.
 - **AssemblyLoader** — uses Mono.Cecil to load .NET assemblies for MonoBehaviour type resolution during export.
 
 ### CLI (`AssetStudioCLI/`)
@@ -62,7 +62,7 @@ Windows Forms application. References core + utility.
 
 - **Studio.cs** — static coordinator holding the global `AssetsManager`, `AssemblyLoader`, and export dispatch logic. Bridges the form to the library.
 - **Exporter.cs** — type-specific export methods (Texture2D→image, Mesh→OBJ, AudioClip→WAV, MonoBehaviour→JSON, etc.).
-- **AssetStudioGUIForm** — main form with scene tree, asset list, OpenGL mesh preview, texture viewer, and audio player (FMOD).
+- **AssetStudioGUIForm** — main form with scene tree, asset list, OpenGL mesh preview, texture viewer, and audio player (FMOD). Accepts command-line args to auto-load files/folders on startup.
 
 ### Native Interop
 
