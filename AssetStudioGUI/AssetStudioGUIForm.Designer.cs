@@ -88,6 +88,7 @@
             this.columnHeaderType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderPathID = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderSize = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeaderReadableSize = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.listSearch = new System.Windows.Forms.TextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.classesListView = new System.Windows.Forms.ListView();
@@ -616,7 +617,8 @@
             this.columnHeaderContainer,
             this.columnHeaderType,
             this.columnHeaderPathID,
-            this.columnHeaderSize});
+            this.columnHeaderSize,
+            this.columnHeaderReadableSize});
             this.assetListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.assetListView.FullRowSelect = true;
             this.assetListView.GridLines = true;
@@ -656,6 +658,11 @@
             // 
             this.columnHeaderSize.Text = "Size";
             this.columnHeaderSize.Width = 50;
+            //
+            // columnHeaderReadableSize
+            //
+            this.columnHeaderReadableSize.Text = "Readable Size";
+            this.columnHeaderReadableSize.Width = 90;
             // 
             // listSearch
             // 
@@ -1126,6 +1133,7 @@
         private System.Windows.Forms.ListView assetListView;
         private System.Windows.Forms.ColumnHeader columnHeaderName;
         private System.Windows.Forms.ColumnHeader columnHeaderSize;
+        private System.Windows.Forms.ColumnHeader columnHeaderReadableSize;
         private System.Windows.Forms.ColumnHeader columnHeaderType;
         private System.Windows.Forms.ToolStripMenuItem exportToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportAllAssetsMenuItem;

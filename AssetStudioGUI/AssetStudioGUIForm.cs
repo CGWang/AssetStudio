@@ -602,7 +602,7 @@ namespace AssetStudioGUI
             sortColumn = e.Column;
             assetListView.BeginUpdate();
             assetListView.SelectedIndices.Clear();
-            if (sortColumn == 4) //FullSize
+            if (sortColumn == 4 || sortColumn == 5) //FullSize or ReadableSize
             {
                 visibleAssets.Sort((a, b) =>
                 {

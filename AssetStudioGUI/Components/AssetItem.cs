@@ -34,7 +34,19 @@ namespace AssetStudioGUI
                 TypeString, //Type
                 m_PathID.ToString(), //PathID
                 FullSize.ToString(), //Size
+                FormatSize(FullSize), //ReadableSize
             });
+        }
+
+        private static string FormatSize(long bytes)
+        {
+            if (bytes < 1024L)
+                return $"{bytes} B";
+            if (bytes < 1024L * 1024)
+                return $"{bytes / 1024.0:F2} KB";
+            if (bytes < 1024L * 1024 * 1024)
+                return $"{bytes / (1024.0 * 1024):F2} MB";
+            return $"{bytes / (1024.0 * 1024 * 1024):F2} GB";
         }
     }
 }
