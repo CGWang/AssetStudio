@@ -50,6 +50,30 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<TargetPath>x64\fmod.dll</TargetPath>
 		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x86\AssetStudioFBXNative.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x86\AssetStudioFBXNative.dll</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x64\AssetStudioFBXNative.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x64\AssetStudioFBXNative.dll</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x86\Texture2DDecoderNative.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x86\Texture2DDecoderNative.dll</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x64\Texture2DDecoderNative.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x64\Texture2DDecoderNative.dll</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x86\acl.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x86\acl.dll</TargetPath>
+		</ContentWithTargetPath>
+		<ContentWithTargetPath Include="Libraries\x64\acl.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>x64\acl.dll</TargetPath>
+		</ContentWithTargetPath>
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' != 'net472' ">
