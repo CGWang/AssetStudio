@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace AssetStudio
 {
@@ -63,6 +64,12 @@ namespace AssetStudio
         public ResourceReader image_data;
         public StreamingInfo m_StreamData;
 
+        private static bool TypeTreeHasField(SerializedType type, string fieldName)
+        {
+            if (type?.m_Type?.m_Nodes == null) return true;
+            return type.m_Type.m_Nodes.Any(n => n.m_Name == fieldName);
+        }
+
         public Texture2D(ObjectReader reader) : base(reader)
         {
             m_Width = reader.ReadInt32();
@@ -109,6 +116,15 @@ namespace AssetStudio
             {
                 var m_StreamingMipmapsPriority = reader.ReadInt32();
             }
+            if (version[0] > 2022 || (version[0] == 2022 && version[1] >= 2)) //2022.2 and up
+            {
+                var hasMipmapLimitGroupName = TypeTreeHasField(reader.serializedType, "m_MipmapLimitGroupName");
+                if (hasMipmapLimitGroupName)
+                {
+                    reader.AlignStream();
+                    var m_MipmapLimitGroupName = reader.ReadAlignedString();
+                }
+            }
             var m_ImageCount = reader.ReadInt32();
             var m_TextureDimension = reader.ReadInt32();
             m_TextureSettings = new GLTextureSettings(reader);
@@ -122,8 +138,21 @@ namespace AssetStudio
             }
             if (version[0] > 2020 || (version[0] == 2020 && version[1] >= 2)) //2020.2 and up
             {
-                var m_PlatformBlob = reader.ReadUInt8Array();
-                reader.AlignStream();
+                var hasPlatformBlob = TypeTreeHasField(reader.serializedType, "m_PlatformBlob");
+                if (hasPlatformBlob)
+                {
+                    var blobLen = reader.ReadInt32();
+                    var remainingBytes = reader.byteSize - (reader.Position - reader.byteStart);
+                    if (blobLen > 0 && blobLen <= remainingBytes)
+                    {
+                        var m_PlatformBlob = reader.ReadBytes(blobLen);
+                    }
+                    else if (blobLen > 0)
+                    {
+                        reader.Position -= 4;
+                    }
+                    reader.AlignStream();
+                }
             }
             var image_data_size = reader.ReadInt32();
             if (image_data_size == 0 && ((version[0] == 5 && version[1] >= 3) || version[0] > 5))//5.3.0 and up

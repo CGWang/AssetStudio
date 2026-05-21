@@ -22,6 +22,9 @@ namespace AssetStudio
             set => BaseStream.Position = value;
         }
 
+        public long Length => BaseStream.Length;
+        public long Remaining => Length - Position;
+
         public override short ReadInt16()
         {
             if (Endian == EndianType.BigEndian)

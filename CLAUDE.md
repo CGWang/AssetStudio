@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-AssetStudio is a C# tool for exploring, extracting, and exporting Unity engine assets and asset bundles. It supports Unity versions 3.4 through 2022.1.
+AssetStudio is a C# tool for exploring, extracting, and exporting Unity engine assets and asset bundles. It supports Unity versions 3.4 through 2022.x, with partial support for Unity 6 (6000.x) — shaders are skipped but other asset types load correctly.
 
 ## Build
 
@@ -93,11 +93,29 @@ AssetStudioGUI
 ## Key NuGet Dependencies
 
 - **K4os.Compression.LZ4** — LZ4 decompression for bundles and shaders
+- **ZstdSharp.Port** — Zstandard decompression for newer Unity bundles
 - **Mono.Cecil** — .NET assembly inspection for MonoBehaviour type resolution
 - **SixLabors.ImageSharp.Drawing** — sprite cropping and image composition
 - **OpenTK** — OpenGL rendering for mesh preview in GUI
 - **Newtonsoft.Json** — MonoBehaviour JSON export
 - **FMOD** (bundled DLLs in `AssetStudioGUI/Libraries/`) — audio playback
+
+## Version Compatibility Notes
+
+Shader parsing has version-specific branching throughout `Shader.cs`. Key version boundaries:
+- **2021.3.10f1+** / **2022.1.13f1+**: `SerializedPlayerSubProgram` and `m_ParameterBlobIndices` added to `SerializedProgram`
+- **2021.3.12f1+** / **2022.1.21f1+**: `stageCounts` field added to `Shader`
+- **2022.1+**: `m_SerializedKeywordStateMask` in `SerializedProgram`
+- **2022.2+**: `m_MipmapLimitGroupName` in `Texture2D`
+- **Unity 6 (6000.x)**: Shader parsing is skipped entirely (format too different); other assets use TypeTree-based field detection
+
+If an asset fails to parse, the error is caught and logged as a Warning (not Error), so the GUI doesn't pop up blocking dialogs. The object is still added to the asset list when possible (Shader retains its name from NamedObject base class).
+
+## Debugging Asset Parse Failures
+
+When `ReadAssets()` catches a parse exception, it logs: Unity version, asset file name, path, ClassIDType, PathID, byte offset, and byte size. Check these fields against the version branching in the relevant `Classes/*.cs` file to find missing version checks. Community forks to reference for newer format changes:
+- **Razviar/assetstudio** (most current, supports Unity 6, archived but comprehensive)
+- **RazTools/Studio** (MiHoYo-focused, archived May 2024)
 
 ## CI
 

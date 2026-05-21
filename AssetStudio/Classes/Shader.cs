@@ -688,9 +688,29 @@ namespace AssetStudio
         }
     }
 
+    public class SerializedPlayerSubProgram
+    {
+        public uint m_BlobIndex;
+        public ushort[] m_KeywordIndices;
+        public long m_ShaderRequirements;
+        public ShaderGpuProgramType m_GpuProgramType;
+
+        public SerializedPlayerSubProgram(ObjectReader reader)
+        {
+            m_BlobIndex = reader.ReadUInt32();
+            m_KeywordIndices = reader.ReadUInt16Array();
+            reader.AlignStream();
+            m_ShaderRequirements = reader.ReadInt64();
+            m_GpuProgramType = (ShaderGpuProgramType)reader.ReadSByte();
+            reader.AlignStream();
+        }
+    }
+
     public class SerializedProgram
     {
         public SerializedSubProgram[] m_SubPrograms;
+        public SerializedPlayerSubProgram[][] m_PlayerSubPrograms;
+        public uint[][] m_ParameterBlobIndices;
         public SerializedProgramParameters m_CommonParameters;
         public ushort[] m_SerializedKeywordStateMask;
 
@@ -703,6 +723,25 @@ namespace AssetStudio
             for (int i = 0; i < numSubPrograms; i++)
             {
                 m_SubPrograms[i] = new SerializedSubProgram(reader);
+            }
+
+            if ((version[0] == 2021 && version[1] > 3) ||
+               (version[0] == 2021 && version[1] == 3 && version[2] >= 10) || //2021.3.10f1 and up
+               (version[0] == 2022 && version[1] > 1) ||
+               (version[0] == 2022 && version[1] == 1 && version[2] >= 13)) //2022.1.13f1 and up
+            {
+                int numPlayerSubPrograms = reader.ReadInt32();
+                m_PlayerSubPrograms = new SerializedPlayerSubProgram[numPlayerSubPrograms][];
+                for (int i = 0; i < numPlayerSubPrograms; i++)
+                {
+                    int numPlatformPrograms = reader.ReadInt32();
+                    m_PlayerSubPrograms[i] = new SerializedPlayerSubProgram[numPlatformPrograms];
+                    for (int j = 0; j < numPlatformPrograms; j++)
+                    {
+                        m_PlayerSubPrograms[i][j] = new SerializedPlayerSubProgram(reader);
+                    }
+                }
+                m_ParameterBlobIndices = reader.ReadUInt32ArrayArray();
             }
 
             if ((version[0] == 2020 && version[1] > 3) ||
@@ -974,9 +1013,30 @@ namespace AssetStudio
         public uint[][] compressedLengths;
         public uint[][] decompressedLengths;
         public byte[] compressedBlob;
+        public uint[] stageCounts;
 
         public Shader(ObjectReader reader) : base(reader)
         {
+            try
+            {
+                ReadShaderData(reader);
+            }
+            catch (Exception)
+            {
+                Logger.Warning($"Shader \"{m_Name}\" uses an unsupported serialization format (Unity {reader.assetsFile.unityVersion}) and was loaded without parsed data.");
+            }
+        }
+
+        private void ReadShaderData(ObjectReader reader)
+        {
+            if (version[0] >= 6000) //Unity 6+
+            {
+                var remaining = reader.byteSize - (reader.Position - reader.byteStart);
+                if (remaining > 0)
+                    reader.ReadBytes((int)remaining);
+                return;
+            }
+
             if (version[0] == 5 && version[1] >= 5 || version[0] > 5) //5.5 and up
             {
                 m_ParsedForm = new SerializedShader(reader);
@@ -995,6 +1055,14 @@ namespace AssetStudio
                 }
                 compressedBlob = reader.ReadUInt8Array();
                 reader.AlignStream();
+
+                if ((version[0] == 2021 && version[1] > 3) ||
+                    (version[0] == 2021 && version[1] == 3 && version[2] >= 12) || //2021.3.12f1 and up
+                    (version[0] == 2022 && version[1] > 1) ||
+                    (version[0] == 2022 && version[1] == 1 && version[2] >= 21)) //2022.1.21f1 and up
+                {
+                    stageCounts = reader.ReadUInt32Array();
+                }
 
                 var m_DependenciesCount = reader.ReadInt32();
                 for (int i = 0; i < m_DependenciesCount; i++)

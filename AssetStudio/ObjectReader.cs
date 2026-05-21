@@ -39,6 +39,14 @@ namespace AssetStudio
             m_Version = assetsFile.header.m_Version;
         }
 
+        public override int Read(byte[] buffer, int index, int count)
+        {
+            var pos = Position - byteStart;
+            if (pos + count > byteSize)
+                throw new EndOfStreamException($"Unable to read beyond the end of the stream. Position: {pos}, requested: {count}, object size: {byteSize}");
+            return base.Read(buffer, index, count);
+        }
+
         public void Reset()
         {
             Position = byteStart;

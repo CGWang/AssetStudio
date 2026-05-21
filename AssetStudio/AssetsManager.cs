@@ -491,8 +491,11 @@ namespace AssetStudio
                             .AppendLine($"Path {assetsFile.originalPath}")
                             .AppendLine($"Type {objectReader.type}")
                             .AppendLine($"PathID {objectInfo.m_PathID}")
+                            .AppendLine($"Unity {assetsFile.unityVersion}")
+                            .AppendLine($"ByteStart {objectInfo.byteStart}")
+                            .AppendLine($"ByteSize {objectInfo.byteSize}")
                             .Append(e);
-                        Logger.Error(sb.ToString());
+                        Logger.Warning(sb.ToString());
                     }
 
                     Progress.Report(++i, progressCount);
