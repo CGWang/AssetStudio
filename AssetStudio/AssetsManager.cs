@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static AssetStudio.ImportHelper;
 
 namespace AssetStudio
@@ -14,12 +17,15 @@ namespace AssetStudio
         public List<SerializedFile> assetsFileList = new List<SerializedFile>();
 
         internal Dictionary<string, int> assetsFileIndexCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        internal Dictionary<string, BinaryReader> resourceFileReaders = new Dictionary<string, BinaryReader>(StringComparer.OrdinalIgnoreCase);
+        internal ConcurrentDictionary<string, BinaryReader> resourceFileReaders = new ConcurrentDictionary<string, BinaryReader>(StringComparer.OrdinalIgnoreCase);
+
+        private readonly object assetsFileListLock = new object();
+        private readonly object importFilesLock = new object();
 
         private List<string> importFiles = new List<string>();
-        private HashSet<string> importFilesHash = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private HashSet<string> noexistFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private HashSet<string> assetsFileListHash = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentDictionary<string, byte> importFilesHash = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentDictionary<string, byte> noexistFiles = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentDictionary<string, byte> assetsFileListHash = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
 
         public void LoadFiles(params string[] files)
         {
@@ -42,15 +48,41 @@ namespace AssetStudio
             foreach (var file in files)
             {
                 importFiles.Add(file);
-                importFilesHash.Add(Path.GetFileName(file));
+                importFilesHash.TryAdd(Path.GetFileName(file), 0);
             }
 
             Progress.Reset();
-            //use a for loop because list size can change
-            for (var i = 0; i < importFiles.Count; i++)
+
+            int processedCount = 0;
+            int totalProgress = 0;
+
+            while (processedCount < importFiles.Count)
             {
-                LoadFile(importFiles[i]);
-                Progress.Report(i + 1, importFiles.Count);
+                int currentBatchEnd;
+                lock (importFilesLock)
+                {
+                    currentBatchEnd = importFiles.Count;
+                }
+
+                var options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Environment.ProcessorCount
+                };
+
+                Parallel.For(processedCount, currentBatchEnd, options, i =>
+                {
+                    string fileToLoad;
+                    lock (importFilesLock)
+                    {
+                        fileToLoad = importFiles[i];
+                    }
+                    LoadFile(fileToLoad);
+
+                    int progress = Interlocked.Increment(ref totalProgress);
+                    Progress.Report(progress, Math.Max(progress, importFiles.Count));
+                });
+
+                processedCount = currentBatchEnd;
             }
 
             importFiles.Clear();
@@ -95,83 +127,102 @@ namespace AssetStudio
 
         private void LoadAssetsFile(FileReader reader)
         {
-            if (!assetsFileListHash.Contains(reader.FileName))
+            if (assetsFileListHash.ContainsKey(reader.FileName))
             {
-                Logger.Info($"Loading {reader.FullPath}");
-                try
+                Logger.Info($"Skipping {reader.FullPath}");
+                reader.Dispose();
+                return;
+            }
+
+            Logger.Info($"Loading {reader.FullPath}");
+            try
+            {
+                var assetsFile = new SerializedFile(reader, this);
+                CheckStrippedVersion(assetsFile);
+
+                lock (assetsFileListLock)
                 {
-                    var assetsFile = new SerializedFile(reader, this);
-                    CheckStrippedVersion(assetsFile);
-                    assetsFileList.Add(assetsFile);
-                    assetsFileListHash.Add(assetsFile.fileName);
-
-                    foreach (var sharedFile in assetsFile.m_Externals)
+                    if (assetsFileListHash.TryAdd(assetsFile.fileName, 0))
                     {
-                        var sharedFileName = sharedFile.fileName;
+                        assetsFileList.Add(assetsFile);
+                    }
+                    else
+                    {
+                        reader.Dispose();
+                        return;
+                    }
+                }
 
-                        if (!importFilesHash.Contains(sharedFileName))
+                foreach (var sharedFile in assetsFile.m_Externals)
+                {
+                    var sharedFileName = sharedFile.fileName;
+
+                    if (importFilesHash.TryAdd(sharedFileName, 0))
+                    {
+                        var sharedFilePath = Path.Combine(Path.GetDirectoryName(reader.FullPath), sharedFileName);
+                        if (!noexistFiles.ContainsKey(sharedFilePath))
                         {
-                            var sharedFilePath = Path.Combine(Path.GetDirectoryName(reader.FullPath), sharedFileName);
-                            if (!noexistFiles.Contains(sharedFilePath))
+                            if (!File.Exists(sharedFilePath))
                             {
-                                if (!File.Exists(sharedFilePath))
+                                var findFiles = Directory.GetFiles(Path.GetDirectoryName(reader.FullPath), sharedFileName, SearchOption.AllDirectories);
+                                if (findFiles.Length > 0)
                                 {
-                                    var findFiles = Directory.GetFiles(Path.GetDirectoryName(reader.FullPath), sharedFileName, SearchOption.AllDirectories);
-                                    if (findFiles.Length > 0)
-                                    {
-                                        sharedFilePath = findFiles[0];
-                                    }
+                                    sharedFilePath = findFiles[0];
                                 }
-                                if (File.Exists(sharedFilePath))
+                            }
+                            if (File.Exists(sharedFilePath))
+                            {
+                                lock (importFilesLock)
                                 {
                                     importFiles.Add(sharedFilePath);
-                                    importFilesHash.Add(sharedFileName);
                                 }
-                                else
-                                {
-                                    noexistFiles.Add(sharedFilePath);
-                                }
+                            }
+                            else
+                            {
+                                noexistFiles.TryAdd(sharedFilePath, 0);
                             }
                         }
                     }
                 }
-                catch (Exception e)
-                {
-                    Logger.Error($"Error while reading assets file {reader.FullPath}", e);
-                    reader.Dispose();
-                }
             }
-            else
+            catch (Exception e)
             {
-                Logger.Info($"Skipping {reader.FullPath}");
+                Logger.Error($"Error while reading assets file {reader.FullPath}", e);
                 reader.Dispose();
             }
         }
 
         private void LoadAssetsFromMemory(FileReader reader, string originalPath, string unityVersion = null)
         {
-            if (!assetsFileListHash.Contains(reader.FileName))
+            if (assetsFileListHash.ContainsKey(reader.FileName))
             {
-                try
+                Logger.Info($"Skipping {originalPath} ({reader.FileName})");
+                return;
+            }
+
+            try
+            {
+                var assetsFile = new SerializedFile(reader, this);
+                assetsFile.originalPath = originalPath;
+                if (!string.IsNullOrEmpty(unityVersion) && assetsFile.header.m_Version < SerializedFileFormatVersion.Unknown_7)
                 {
-                    var assetsFile = new SerializedFile(reader, this);
-                    assetsFile.originalPath = originalPath;
-                    if (!string.IsNullOrEmpty(unityVersion) && assetsFile.header.m_Version < SerializedFileFormatVersion.Unknown_7)
-                    {
-                        assetsFile.SetVersion(unityVersion);
-                    }
-                    CheckStrippedVersion(assetsFile);
-                    assetsFileList.Add(assetsFile);
-                    assetsFileListHash.Add(assetsFile.fileName);
+                    assetsFile.SetVersion(unityVersion);
                 }
-                catch (Exception e)
+                CheckStrippedVersion(assetsFile);
+
+                lock (assetsFileListLock)
                 {
-                    Logger.Error($"Error while reading assets file {reader.FullPath} from {Path.GetFileName(originalPath)}", e);
-                    resourceFileReaders.Add(reader.FileName, reader);
+                    if (assetsFileListHash.TryAdd(assetsFile.fileName, 0))
+                    {
+                        assetsFileList.Add(assetsFile);
+                    }
                 }
             }
-            else
-                Logger.Info($"Skipping {originalPath} ({reader.FileName})");
+            catch (Exception e)
+            {
+                Logger.Error($"Error while reading assets file {reader.FullPath} from {Path.GetFileName(originalPath)}", e);
+                resourceFileReaders.TryAdd(reader.FileName, reader);
+            }
         }
 
         private void LoadBundleFile(FileReader reader, string originalPath = null)
@@ -265,12 +316,12 @@ namespace AssetStudio
                             if (!splitFiles.Contains(basePath))
                             {
                                 splitFiles.Add(basePath);
-                                importFilesHash.Add(baseName);
+                                importFilesHash.TryAdd(baseName, 0);
                             }
                         }
                         else
                         {
-                            importFilesHash.Add(entry.Name);
+                            importFilesHash.TryAdd(entry.Name, 0);
                         }
                     }
 
@@ -323,10 +374,7 @@ namespace AssetStudio
                             if (entryReader.FileType == FileType.ResourceFile)
                             {
                                 entryReader.Position = 0;
-                                if (!resourceFileReaders.ContainsKey(entry.Name))
-                                {
-                                    resourceFileReaders.Add(entry.Name, entryReader);
-                                }
+                                resourceFileReaders.TryAdd(entry.Name, entryReader);
                             }
                         }
                         catch (Exception e)

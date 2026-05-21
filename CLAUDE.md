@@ -27,15 +27,15 @@ msbuild /t:AssetStudioGUI:publish /p:Configuration=Release /p:TargetFramework=ne
 
 ## Architecture
 
-The solution has 8 projects organized in three tiers:
+The solution has 9 projects organized in three tiers:
 
 ### Core Library (`AssetStudio/`)
 
 Pure parsing logic with no UI or export dependencies. Key classes:
 
-- **AssetsManager** — entry point for loading. Accepts files/folders, detects formats by magic bytes (`FileReader`), dispatches to `BundleFile`/`WebFile`/`SerializedFile` parsers, then runs a two-phase pipeline: `ReadAssets()` deserializes objects by ClassIDType, `ProcessAssets()` links GameObjects to their components (Transform, MeshRenderer, Animator, etc.).
+- **AssetsManager** — entry point for loading. Accepts files/folders, detects formats by magic bytes (`FileReader`), dispatches to `BundleFile`/`WebFile`/`SerializedFile` parsers, then runs a two-phase pipeline: `ReadAssets()` deserializes objects by ClassIDType, `ProcessAssets()` links GameObjects to their components (Transform, MeshRenderer, Animator, etc.). File loading is parallelized with `Parallel.For` and thread-safe collections (`ConcurrentDictionary`).
 - **SerializedFile** — parses `.assets` files: header, type tree metadata, object table, and external references.
-- **BundleFile** — parses UnityFS/UnityRaw/UnityWeb bundles, decompresses storage blocks (LZMA, LZ4, LZ4HC, Lzham), and extracts contained files.
+- **BundleFile** — parses UnityFS/UnityRaw/UnityWeb bundles, decompresses storage blocks (LZMA, LZ4, LZ4HC, Lzham, Zstd), and extracts contained files.
 - **ObjectReader** — positioned binary reader for a single serialized object; each asset type class (Texture2D, Mesh, AnimationClip, etc.) reads from it in its constructor with version-specific branching.
 - **ResourceReader** — lazy-loads external binary data (textures, audio stored in `.resource`/`.resS` files).
 
@@ -49,6 +49,12 @@ Format conversion and export logic. Depends on core + PInvoke + both wrappers.
 - **ModelConverter** — collects mesh, skeleton, material, and animation data from GameObjects/Animators into an `IImported` intermediate representation.
 - **ShaderConverter** — decompresses and reconstructs shader source from compiled bytecode blobs.
 - **AssemblyLoader** — uses Mono.Cecil to load .NET assemblies for MonoBehaviour type resolution during export.
+
+### CLI (`AssetStudioCLI/`)
+
+Command-line tool for batch asset extraction. References core + utility. No WinForms dependency.
+
+- **Program.cs** — entry point, argument parsing, asset loading, and export logic in a single file. Supports type filtering, export mode selection (convert/raw/dump), and Unity version override.
 
 ### GUI (`AssetStudioGUI/`)
 
@@ -72,13 +78,14 @@ Two C++ DLLs with managed wrappers, bridged through `AssetStudio.PInvoke`:
 ### Dependency Graph
 
 ```
-AssetStudioGUI
-  ├── AssetStudio (core)
-  └── AssetStudioUtility
-        ├── AssetStudio (core)
-        ├── AssetStudio.PInvoke
-        ├── AssetStudioFBXWrapper → AssetStudioFBXNative (C++)
-        └── Texture2DDecoderWrapper → Texture2DDecoderNative (C++)
+AssetStudioGUI ─┐
+AssetStudioCLI ─┤
+                ├── AssetStudio (core)
+                └── AssetStudioUtility
+                      ├── AssetStudio (core)
+                      ├── AssetStudio.PInvoke
+                      ├── AssetStudioFBXWrapper → AssetStudioFBXNative (C++)
+                      └── Texture2DDecoderWrapper → Texture2DDecoderNative (C++)
 ```
 
 ### Asset Loading Pipeline

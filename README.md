@@ -7,7 +7,7 @@ AssetStudio is a tool for exploring, extracting and exporting assets and assetbu
 
 ## Features
 * Support version:
-  * 3.4 - 2022.1
+  * 3.4 - 2022.2+ (partial Unity 6 support)
 * Support asset types:
   * **Texture2D** : convert to png, tga, jpeg, bmp
   * **Sprite** : crop Texture2D to png, tga, jpeg, bmp
@@ -20,6 +20,61 @@ AssetStudio is a tool for exploring, extracting and exporting assets and assetbu
   * **VideoClip**
   * **MonoBehaviour** : json
   * **Animator** : export to FBX file with bound AnimationClip
+
+## What's New (Fork Enhancements)
+
+### Unity Version Compatibility
+* **Shader parsing fixes** for Unity 2021.3.10+, 2022.1.13+, and 2022.2+
+  * Added `SerializedPlayerSubProgram` and `m_ParameterBlobIndices` support
+  * Added `stageCounts` field handling for 2021.3.12+/2022.1.21+
+  * Unity 6 (6000.x) shaders are detected and skipped gracefully
+  * Shader parse failures no longer block the UI (downgraded from error to warning)
+* **Texture2D parsing fixes** for Unity 2022.2+
+  * Added `m_MipmapLimitGroupName` field support using TypeTree-based detection
+  * Added safety bounds checking for `m_PlatformBlob` reading
+* **Zstandard (Zstd) bundle decompression** for newer Unity versions
+  * Added `ZstdSharp.Port` NuGet dependency
+
+### Parallel File Loading
+* Asset loading now uses `Parallel.For` across multiple CPU cores
+* Thread-safe collections (`ConcurrentDictionary`) for shared state during load
+* Wave-based dependency resolution: new files discovered during parallel load are queued for the next wave
+* Significant speedup when loading large numbers of asset bundles
+
+### CLI Tool (`AssetStudioCLI`)
+A command-line interface for batch asset extraction without the GUI.
+
+```
+Usage: AssetStudioCLI <input> <output> [options]
+
+Options:
+  -t, --type <types>         Filter by type (comma-separated), e.g. Texture2D,AudioClip
+  -m, --mode <mode>          Export mode: convert (default), raw, dump
+  -v, --unity-version <ver>  Specify Unity version for stripped assets
+```
+
+Examples:
+```bash
+# Export all assets from a folder
+AssetStudioCLI "C:\GameData" "C:\Output"
+
+# Export only textures and audio
+AssetStudioCLI "C:\GameData" "C:\Output" -t Texture2D,AudioClip
+
+# Export raw asset data
+AssetStudioCLI "C:\GameData" "C:\Output" -m raw
+```
+
+### ACL Animation Decompression (Infrastructure)
+* Added P/Invoke wrapper for `acl.dll` native library
+* Added `ACLClip` class for ACL-compressed animation data
+* Native `acl.dll` included for x86 and x64
+* Note: ACL is used by some game-specific Unity builds (e.g., MiHoYo titles). The infrastructure is in place but not auto-detected for standard Unity assets.
+
+### Improved Diagnostics
+* Asset parse errors now include Unity version, byte offset, and byte size
+* Parse failures are logged as warnings instead of blocking error dialogs
+* `ObjectReader.Read()` includes bounds validation with diagnostic messages
 
 ## Requirements
 
