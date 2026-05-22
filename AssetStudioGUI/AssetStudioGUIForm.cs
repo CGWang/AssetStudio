@@ -111,6 +111,14 @@ namespace AssetStudioGUI
             Studio.StatusStripUpdate = StatusStripUpdate;
 
             HandleMainArgs(args);
+            BeginUpdateCheck();
+        }
+
+        private async void BeginUpdateCheck()
+        {
+            await Task.Delay(2000);
+            var checker = new UpdateChecker(StatusStripUpdate);
+            await checker.CheckAndPromptAsync();
         }
 
         private async void HandleMainArgs(string[] args)
