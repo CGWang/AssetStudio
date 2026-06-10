@@ -453,6 +453,8 @@ namespace AssetStudio
         public Matrix4x4[] m_BindPose;
         public uint[] m_BoneNameHashes;
         public int m_VertexCount;
+        public byte m_MeshCompression;
+        public bool m_IsReadable;
         public float[] m_Vertices;
         public BoneWeights4[] m_Skin;
         public float[] m_Normals;
@@ -531,14 +533,14 @@ namespace AssetStudio
                     var m_VariableBoneCountWeights = reader.ReadUInt32Array();
                 }
 
-                var m_MeshCompression = reader.ReadByte();
+                m_MeshCompression = reader.ReadByte();
                 if (version[0] >= 4)
                 {
                     if (version[0] < 5)
                     {
                         var m_StreamCompression = reader.ReadByte();
                     }
-                    var m_IsReadable = reader.ReadBoolean();
+                    m_IsReadable = reader.ReadBoolean();
                     var m_KeepVertices = reader.ReadBoolean();
                     var m_KeepIndices = reader.ReadBoolean();
                 }
