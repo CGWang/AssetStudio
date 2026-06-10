@@ -107,6 +107,18 @@ namespace AssetStudio
                     var m_ReadAllowed = reader.ReadBoolean();
                 }
             }
+            //2022.2 and up: m_MipmapLimitGroupName 序列化在 m_StreamingMipmaps 之前
+            //（顺序错放到 m_StreamingMipmapsPriority 之后会导致后续字段整体错位 4 字节，
+            //  image_data_size 误读为 0，m_StreamData 读出乱码）
+            if (version[0] > 2022 || (version[0] == 2022 && version[1] >= 2))
+            {
+                var hasMipmapLimitGroupName = TypeTreeHasField(reader.serializedType, "m_MipmapLimitGroupName");
+                if (hasMipmapLimitGroupName)
+                {
+                    reader.AlignStream();
+                    var m_MipmapLimitGroupName = reader.ReadAlignedString();
+                }
+            }
             if (version[0] > 2018 || (version[0] == 2018 && version[1] >= 2)) //2018.2 and up
             {
                 var m_StreamingMipmaps = reader.ReadBoolean();
@@ -115,15 +127,6 @@ namespace AssetStudio
             if (version[0] > 2018 || (version[0] == 2018 && version[1] >= 2)) //2018.2 and up
             {
                 var m_StreamingMipmapsPriority = reader.ReadInt32();
-            }
-            if (version[0] > 2022 || (version[0] == 2022 && version[1] >= 2)) //2022.2 and up
-            {
-                var hasMipmapLimitGroupName = TypeTreeHasField(reader.serializedType, "m_MipmapLimitGroupName");
-                if (hasMipmapLimitGroupName)
-                {
-                    reader.AlignStream();
-                    var m_MipmapLimitGroupName = reader.ReadAlignedString();
-                }
             }
             var m_ImageCount = reader.ReadInt32();
             var m_TextureDimension = reader.ReadInt32();
