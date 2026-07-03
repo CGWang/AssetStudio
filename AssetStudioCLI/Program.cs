@@ -320,7 +320,7 @@ namespace AssetStudioCLI
                 }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine($"[ERROR] Failed to export {asset.Text}: {e.Message}");
+                    Console.Error.WriteLine($"[ERROR] Failed to export {asset.Text}: {e}");
                     failed++;
                 }
 
