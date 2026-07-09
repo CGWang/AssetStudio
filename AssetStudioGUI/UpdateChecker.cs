@@ -196,7 +196,16 @@ exit
 
         private static string GetCurrentVersion()
         {
-            return Application.ProductVersion;
+            // Application.ProductVersion can carry SemVer metadata, e.g. "0.16.3.0+<githash>"
+            // (the SDK appends the source revision). new Version(...) can't parse that and would
+            // throw, silently killing the whole update check. Strip anything after '+' or '-'.
+            var version = Application.ProductVersion;
+            var metadataStart = version.IndexOfAny(new[] { '+', '-' });
+            if (metadataStart >= 0)
+            {
+                version = version.Substring(0, metadataStart);
+            }
+            return version;
         }
 
         private static Version ParseVersion(string tag)
