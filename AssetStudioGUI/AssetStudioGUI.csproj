@@ -13,6 +13,12 @@
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 	</PropertyGroup>
 
+	<!-- WinForms .resx carries non-string (binary) resources; newer .NET SDKs require
+	     pre-serialized resources + System.Resources.Extensions to build the net472 TFM. -->
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+		<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\AssetStudioUtility\AssetStudioUtility.csproj" />
 		<ProjectReference Include="..\AssetStudio\AssetStudio.csproj" />
@@ -87,6 +93,7 @@
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
 		<PackageReference Include="OpenTK" Version="3.1.0" />
 		<PackageReference Include="OpenTK.GLControl" Version="3.1.0" />
+		<PackageReference Include="System.Resources.Extensions" Version="8.0.0" />
 		<Reference Include="System.IO.Compression.FileSystem" />
 		<Reference Include="System.Net.Http" />
 	</ItemGroup>
