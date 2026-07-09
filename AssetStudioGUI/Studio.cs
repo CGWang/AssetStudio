@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Linq;
@@ -379,6 +380,11 @@ namespace AssetStudioGUI
 
                 int toExportCount = toExportAssets.Count;
                 int exportedCount = 0;
+                int existsSkipCount = 0;
+                int notExtractableCount = 0;
+                int errorCount = 0;
+                var notExtractableByType = new Dictionary<ClassIDType, int>();
+                var sw = Stopwatch.StartNew();
                 int i = 0;
                 Progress.Reset();
                 foreach (var asset in toExportAssets)
@@ -415,38 +421,54 @@ namespace AssetStudioGUI
                     }
                     exportPath += Path.DirectorySeparatorChar;
                     StatusStripUpdate($"[{exportedCount}/{toExportCount}] Exporting {asset.TypeString}: {asset.Text}");
+                    LastSkipWasFileExists = false;
+                    bool exported = false;
+                    bool errored = false;
                     try
                     {
                         switch (exportType)
                         {
                             case ExportType.Raw:
-                                if (ExportRawFile(asset, exportPath))
-                                {
-                                    exportedCount++;
-                                }
+                                exported = ExportRawFile(asset, exportPath);
                                 break;
                             case ExportType.Dump:
-                                if (ExportDumpFile(asset, exportPath))
-                                {
-                                    exportedCount++;
-                                }
+                                exported = ExportDumpFile(asset, exportPath);
                                 break;
                             case ExportType.Convert:
-                                if (ExportConvertFile(asset, exportPath))
-                                {
-                                    exportedCount++;
-                                }
+                                exported = ExportConvertFile(asset, exportPath);
                                 break;
                         }
                     }
                     catch (Exception ex)
                     {
+                        errored = true;
+                        errorCount++;
                         MessageBox.Show($"Export {asset.Type}:{asset.Text} error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                    }
+
+                    if (exported)
+                    {
+                        exportedCount++;
+                    }
+                    else if (errored)
+                    {
+                        // already tallied as an error above
+                    }
+                    else if (LastSkipWasFileExists)
+                    {
+                        existsSkipCount++;
+                    }
+                    else
+                    {
+                        notExtractableByType.TryGetValue(asset.Type, out var typeCount);
+                        notExtractableByType[asset.Type] = typeCount + 1;
+                        notExtractableCount++;
                     }
 
                     Progress.Report(++i, toExportCount);
                 }
 
+                sw.Stop();
                 var statusText = exportedCount == 0 ? "Nothing exported." : $"Finished exporting {exportedCount} assets.";
 
                 if (toExportCount > exportedCount)
@@ -456,11 +478,42 @@ namespace AssetStudioGUI
 
                 StatusStripUpdate(statusText);
 
+                if (Properties.Settings.Default.showExportReport)
+                {
+                    ShowExportReport(toExportCount, exportedCount, existsSkipCount, notExtractableCount, errorCount, notExtractableByType, sw.Elapsed);
+                }
+
                 if (Properties.Settings.Default.openAfterExport && exportedCount > 0)
                 {
                     OpenFolderInExplorer(savePath);
                 }
             });
+        }
+
+        private static void ShowExportReport(int total, int exported, int existsSkipped, int notExtractable, int errors, Dictionary<ClassIDType, int> notExtractableByType, TimeSpan elapsed)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Elapsed:  {elapsed:hh\\:mm\\:ss}");
+            sb.AppendLine();
+            sb.AppendLine($"Exported:            {exported:N0}  /  {total:N0}");
+            if (existsSkipped > 0)
+                sb.AppendLine($"Skipped (exists):    {existsSkipped:N0}");
+            if (notExtractable > 0)
+                sb.AppendLine($"Skipped (no data):   {notExtractable:N0}");
+            if (errors > 0)
+                sb.AppendLine($"Errors:              {errors:N0}");
+
+            if (notExtractableByType.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Skipped (no data) by type:");
+                foreach (var kv in notExtractableByType.OrderByDescending(x => x.Value).Take(10))
+                {
+                    sb.AppendLine($"    {kv.Key,-20} {kv.Value:N0}");
+                }
+            }
+
+            MessageBox.Show(sb.ToString(), "Export Report");
         }
 
         public static void ExportAssetsList(string savePath, List<AssetItem> toExportAssets, ExportListType exportListType)

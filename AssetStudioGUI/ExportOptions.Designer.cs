@@ -33,6 +33,7 @@
             this.Cancel = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.openAfterExport = new System.Windows.Forms.CheckBox();
+            this.showExportReport = new System.Windows.Forms.CheckBox();
             this.restoreExtensionName = new System.Windows.Forms.CheckBox();
             this.assetGroupOptions = new System.Windows.Forms.ComboBox();
             this.label6 = new System.Windows.Forms.Label();
@@ -94,6 +95,7 @@
             // groupBox1
             // 
             this.groupBox1.AutoSize = true;
+            this.groupBox1.Controls.Add(this.showExportReport);
             this.groupBox1.Controls.Add(this.openAfterExport);
             this.groupBox1.Controls.Add(this.restoreExtensionName);
             this.groupBox1.Controls.Add(this.assetGroupOptions);
@@ -119,7 +121,19 @@
             this.openAfterExport.TabIndex = 10;
             this.openAfterExport.Text = "Open folder after export";
             this.openAfterExport.UseVisualStyleBackColor = true;
-            // 
+            //
+            // showExportReport
+            //
+            this.showExportReport.AutoSize = true;
+            this.showExportReport.Checked = true;
+            this.showExportReport.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.showExportReport.Location = new System.Drawing.Point(6, 182);
+            this.showExportReport.Name = "showExportReport";
+            this.showExportReport.Size = new System.Drawing.Size(180, 16);
+            this.showExportReport.TabIndex = 11;
+            this.showExportReport.Text = "Show export report popup";
+            this.showExportReport.UseVisualStyleBackColor = true;
+            //
             // restoreExtensionName
             // 
             this.restoreExtensionName.AutoSize = true;
@@ -529,6 +543,7 @@
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.CheckBox restoreExtensionName;
         private System.Windows.Forms.CheckBox openAfterExport;
+        private System.Windows.Forms.CheckBox showExportReport;
         private System.Windows.Forms.CheckBox exportAllUvsAsDiffuseMaps;
         private System.Windows.Forms.ToolTip exportUvsTooltip;
     }

@@ -70,7 +70,19 @@ namespace AssetStudioGUI.Properties {
                 this["openAfterExport"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool showExportReport {
+            get {
+                return ((bool)(this["showExportReport"]));
+            }
+            set {
+                this["showExportReport"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]

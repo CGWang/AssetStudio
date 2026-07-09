@@ -9,6 +9,13 @@ namespace AssetStudioGUI
 {
     internal static class Exporter
     {
+        // Set by TryExportFile when an export is skipped because the target file already
+        // exists (both the plain name and the name+UniqueID variant). Read by
+        // Studio.ExportAssets to split skips into "already exists" vs "not extractable"
+        // in the end-of-export report. The batch export runs on a single worker thread,
+        // and the caller resets this before each asset, so a plain static is safe.
+        public static bool LastSkipWasFileExists;
+
         public static bool ExportTexture2D(AssetItem item, string exportPath)
         {
             var m_Texture2D = (Texture2D)item.Asset;
@@ -271,6 +278,7 @@ namespace AssetStudioGUI
                 Directory.CreateDirectory(dir);
                 return true;
             }
+            LastSkipWasFileExists = true;
             return false;
         }
 
