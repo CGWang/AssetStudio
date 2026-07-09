@@ -923,6 +923,11 @@ namespace AssetStudio
         private void ReadCurveData(ImportedKeyframedAnimation iAnim, AnimationClipBindingConstant m_ClipBindingConstant, int index, float time, float[] data, int offset, ref int curveIndex)
         {
             var binding = m_ClipBindingConstant.FindBinding(index);
+            if (binding == null) //曲线 index 超出反推出的 binding 范围，跳过该曲线，避免整个 Animator 导出中断
+            {
+                curveIndex++;
+                return;
+            }
             if (binding.typeID == ClassIDType.SkinnedMeshRenderer) //BlendShape
             {
                 var channelName = GetChannelNameFromHash(binding.attribute);
