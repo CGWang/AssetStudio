@@ -785,8 +785,14 @@ namespace AssetStudioGUI
             var image = m_Texture2D.ConvertToImage(true);
             if (image != null)
             {
-                var bitmap = new DirectBitmap(image.ConvertToBytes(), m_Texture2D.m_Width, m_Texture2D.m_Height);
+                var imageBytes = image.ConvertToBytes();
                 image.Dispose();
+                if (imageBytes == null || imageBytes.Length < m_Texture2D.m_Width * m_Texture2D.m_Height * 4)
+                {
+                    StatusStripUpdate("Unsupported image for preview");
+                    return;
+                }
+                var bitmap = new DirectBitmap(imageBytes, m_Texture2D.m_Width, m_Texture2D.m_Height);
                 assetItem.InfoText = $"Width: {m_Texture2D.m_Width}\nHeight: {m_Texture2D.m_Height}\nFormat: {m_Texture2D.m_TextureFormat}";
                 switch (m_Texture2D.m_TextureSettings.m_FilterMode)
                 {
